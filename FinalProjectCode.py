@@ -121,10 +121,15 @@ def plot_retention_rate(df):
     plt.tight_layout()
     plt.show()
 
-def plot_retention_rate_by_criteria(df, group_by='Genre', group_by_title='Genre'):
+def plot_retention_rate_by_criteria(df, group_by='Genre', group_by_title='Genre', cut_range = [0, 10, 20, 30, np.inf], cut_labels=['$0-10', '$10-20', '$20-30', '$30+'], to_cut = False):
+    if to_cut:
+        df[f'{group_by} Range'] = pd.cut(df[group_by], bins=cut_range, labels=cut_labels)
+
+        group_by = group_by + " Range"
+    
     grouped_by_year = df.groupby('Year')
     years = sorted(df['Year'].unique())
-    crit = sorted(df[group_by].unique())
+    crit = df[group_by].unique()
     
     retention_data = {year: {field: None for field in crit} for year in years[:-1]} # Exclude the last year as it cannot have a next year to compare with
 
