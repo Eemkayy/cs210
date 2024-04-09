@@ -91,3 +91,71 @@ def analysis_price_cultural_relevance(df):
     ax.set_title('Reviews Distribution by Price Range')
     ax.set_ylabel('Reviews')
     plt.show()
+
+
+def plot_retention_rate(df):
+    grouped = df.groupby('Year')
+    retention_rates = []
+
+    # Calculate retention rate for each consecutive pair of years
+    for year, group in grouped:
+        next_year = year + 1
+        if next_year in grouped.groups:
+            current_books = set(zip(group['Name'], group['Author']))
+            next_year_books = set(zip(grouped.get_group(next_year)['Name'], grouped.get_group(next_year)['Author']))
+            retention_rate = len(current_books.intersection(next_year_books)) / len(current_books)
+            retention_rates.append((year, next_year, retention_rate))
+
+    # Plot retention rates
+    years = [f"{year} to {next_year}" for year, next_year, _ in retention_rates]
+    rates = [rate for _, _, rate in retention_rates]
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(years, rates, color='skyblue')
+    plt.title('Retention Rate of Books per Year')
+    plt.xlabel('Year Range')
+    plt.ylabel('Retention Rate')
+    plt.xticks(rotation=45)
+    plt.ylim(0, 1)  # Set y-axis limit from 0 to 1 for retention rate
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
+def plot_retention_rate_by_criteria(df, group_by='Genre', group_by_title='Genre'):
+    grouped_by_year = df.groupby('Year')
+    years = sorted(df['Year'].unique())
+    crit = sorted(df[group_by].unique())
+    
+    retention_data = {year: {field: None for field in crit} for year in years[:-1]} # Exclude the last year as it cannot have a next year to compare with
+
+    for year, group in grouped_by_year:
+        next_year = year + 1
+        if next_year in years:
+            for field in crit:
+                current_books = set(zip(group[group[group_by] == field]['Name'], group[group[group_by] == field]['Author']))
+                if next_year in grouped_by_year.groups:
+                    next_year_books = set(zip(grouped_by_year.get_group(next_year)[grouped_by_year.get_group(next_year)[group_by] == field]['Name'], 
+                                              grouped_by_year.get_group(next_year)[grouped_by_year.get_group(next_year)[group_by] == field]['Author']))
+                    if current_books:
+                        retention_rate = len(current_books.intersection(next_year_books)) / len(current_books)
+                    else:
+                        retention_rate = 0  # Handle division by zero if there are no books for a field in the current year
+                    retention_data[year][field] = retention_rate
+
+    # Plotting
+    fig, ax = plt.subplots(figsize=(12, 8))
+    width = 0.75 / len(crit)
+    for i, field in enumerate(crit):
+        rates = [retention_data[year][field] for year in years[:-1]]
+        ax.bar(np.arange(len(years)-1) + i*width, rates, width, label=field)
+
+    ax.set_xticks(np.arange(len(years)-1) + width / 2)
+    ax.set_xticklabels(years[:-1])
+    ax.set_ylabel('Retention Rate')
+    ax.set_xlabel('Year')
+    ax.set_title(f'Retention Rates by {group_by_title} per Year')
+    ax.legend(title=f'{group_by_title}')
+
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
