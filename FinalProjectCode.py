@@ -97,7 +97,6 @@ def plot_retention_rate(df):
     grouped = df.groupby('Year')
     retention_rates = []
 
-    # Calculate retention rate for each consecutive pair of years
     for year, group in grouped:
         next_year = year + 1
         if next_year in grouped.groups:
@@ -106,7 +105,6 @@ def plot_retention_rate(df):
             retention_rate = len(current_books.intersection(next_year_books)) / len(current_books)
             retention_rates.append((year, next_year, retention_rate))
 
-    # Plot retention rates
     years = [f"{year} to {next_year}" for year, next_year, _ in retention_rates]
     rates = [rate for _, _, rate in retention_rates]
 
@@ -116,7 +114,7 @@ def plot_retention_rate(df):
     plt.xlabel('Year Range')
     plt.ylabel('Retention Rate')
     plt.xticks(rotation=45)
-    plt.ylim(0, 1)  # Set y-axis limit from 0 to 1 for retention rate
+    plt.ylim(0, 1)  
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
     plt.show()
@@ -164,3 +162,97 @@ def plot_retention_rate_by_criteria(df, group_by='Genre', group_by_title='Genre'
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.show()
+
+
+
+def change_over_time(df):
+    books_per_year_genre = df.groupby(['Year', 'Genre']).size().unstack(fill_value=0)
+
+    yoy_changes = books_per_year_genre.diff().fillna(0)
+    yoy_changes.plot(kind='bar', figsize=(14, 8))
+    plt.title('Year-over-Year Change in Number of Books by Genre')
+    plt.xlabel('Year')
+    plt.ylabel('Change in Number of Books')
+    plt.xticks(rotation=45)
+    plt.grid(axis='y')
+    plt.legend(title='Genre')
+    plt.tight_layout()
+    plt.show()
+
+
+def trend_nf(df):
+    non_fiction_data = df[df['Genre'] == 'Non Fiction']
+
+    # Calculate the number of books per year and average price per year
+    books_per_year = non_fiction_data.groupby('Year')['Name'].count()
+    average_price_per_year = non_fiction_data.groupby('Year')['Price'].mean()
+
+    # Create figure and axis objects with a shared x-axis
+    fig, ax1 = plt.subplots()
+
+    # Plot the number of books (popularity) on the first y-axis
+    color = 'tab:blue'
+    ax1.set_xlabel('Year')
+    ax1.set_ylabel('Number of Top 50 Books', color=color)
+    ax1.scatter(books_per_year.index, books_per_year.values, color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    # Calculate and plot the trend line for the number of books
+    slope, intercept = np.polyfit(books_per_year.index, books_per_year.values, 1)
+    line = slope * books_per_year.index + intercept
+    ax1.plot(books_per_year.index, line, color=color, label='Popularity Trend')
+
+    # Instantiate a second y-axis sharing the same x-axis
+    ax2 = ax1.twinx()
+
+    # Plot the average price on the second y-axis
+    color = 'tab:red'
+    ax2.set_ylabel('Average Price ($)', color=color)
+    ax2.plot(average_price_per_year.index, average_price_per_year.values, color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    # Calculate and plot the trend line for the average price
+    slope, intercept = np.polyfit(average_price_per_year.index, average_price_per_year.values, 1)
+    line = slope * average_price_per_year.index + intercept
+    ax2.plot(average_price_per_year.index, line, color=color, linestyle='--', label='Price Trend')
+
+    # Title and legend
+    plt.title('Popularity and Price Trend of Non Fiction Books')
+    fig.tight_layout()
+    fig.legend(loc="upper left", bbox_to_anchor=(0,1), bbox_transform=ax1.transAxes)
+
+    # Show the plot
+    plt.show()
+
+
+def trend_f(df):
+    non_fiction_data = df[df['Genre'] == 'Fiction']
+
+    books_per_year = non_fiction_data.groupby('Year')['Name'].count()
+    average_price_per_year = non_fiction_data.groupby('Year')['Price'].mean()
+
+    fig, ax1 = plt.subplots()
+
+    color = 'tab:blue'
+    ax1.set_xlabel('Year')
+    ax1.set_ylabel('Number of Top 50 Books', color=color)
+    ax1.scatter(books_per_year.index, books_per_year.values, color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    slope, intercept = np.polyfit(books_per_year.index, books_per_year.values, 1)
+    line = slope * books_per_year.index + intercept
+    ax1.plot(books_per_year.index, line, color=color, label='Popularity Trend')
+    ax2 = ax1.twinx()
+    color = 'tab:red'
+    ax2.set_ylabel('Average Price ($)', color=color)
+    ax2.plot(average_price_per_year.index, average_price_per_year.values, color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    slope, intercept = np.polyfit(average_price_per_year.index, average_price_per_year.values, 1)
+    line = slope * average_price_per_year.index + intercept
+    ax2.plot(average_price_per_year.index, line, color=color, linestyle='--', label='Price Trend')
+    plt.title('Popularity and Price Trend of Non Fiction Books')
+    fig.tight_layout()
+    fig.legend(loc="upper left", bbox_to_anchor=(0,1), bbox_transform=ax1.transAxes)
+
+    plt.show()  
