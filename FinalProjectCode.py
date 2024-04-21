@@ -3,6 +3,57 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+def pie_dist(df, pie_by='Genre'):
+    # Drop duplicates based on 'Name' and 'Author' to ensure uniqueness
+    unique_df = df.drop_duplicates(subset=['Name', 'Author'])
+
+    # Count occurrences of each value in the pie_by column
+    vals = unique_df[pie_by].value_counts()
+
+    # Merge categories with fewer than 2 entries into "Others"
+    other_count = vals[vals < 8].sum()
+    vals = vals[vals >= 8]
+    if other_count > 0:
+        vals['Others'] = other_count
+
+    # Prepare labels with counts
+    labels_with_counts = [f'{item} (n={count})' for item, count in vals.items()]
+
+    # Creating the donut chart
+    plt.figure(figsize=(8, 8))
+    plt.pie(vals, labels=labels_with_counts, autopct='%1.1f%%', startangle=90, wedgeprops={'width': 0.6})
+    plt.title(f'{pie_by} Distribution')
+    plt.show()
+
+def plot_price(df):
+    df = df.drop_duplicates(subset=['Name', 'Author'])
+    plt.figure(figsize=(10, 6))
+    plt.hist(df['Price'], bins=20, color='blue', edgecolor='black')
+    plt.title('Frequency Distribution of Prices')
+    plt.xlabel('Price')
+    plt.ylabel('Frequency')
+    plt.grid(True)
+    plt.show()
+
+def plot_ratings(df):
+    df = df.drop_duplicates(subset=['Name', 'Author'])
+    plt.figure(figsize=(10, 6))
+    plt.hist(df['User Rating'], bins=5, color='red', edgecolor='black')
+    plt.title('Frequency Distribution of User Rating')
+    plt.xlabel('Rating')
+    plt.ylabel('Frequency')
+    plt.grid(True)
+    plt.show()
+
+def plot_reviews(df):
+    df = df.drop_duplicates(subset=['Name', 'Author'])
+    plt.figure(figsize=(10, 6))
+    plt.hist(df['Reviews'], bins=30, color='orange', edgecolor='black')
+    plt.title('Frequency Distribution of User Review Count')
+    plt.xlabel('Reviews')
+    plt.ylabel('Frequency')
+    plt.grid(True)
+    plt.show()
 
 def genre_trend_per_year(df):
     genre_count_per_year = df.groupby(['Year', 'Genre']).size().unstack(fill_value=0)
@@ -109,33 +160,39 @@ def plot_retention_rate(df):
     rates = [rate for _, _, rate in retention_rates]
 
     plt.figure(figsize=(10, 6))
-    plt.bar(years, rates, color='skyblue')
+    bars = plt.bar(years, rates, color='skyblue')
     plt.title('Retention Rate of Books per Year')
     plt.xlabel('Year Range')
     plt.ylabel('Retention Rate')
     plt.xticks(rotation=45)
     plt.ylim(0, 1)  
     plt.grid(axis='y', linestyle='--', alpha=0.7)
-    plt.tight_layout()
+
+    # adds text labels for bars
+    for bar, rate in zip(bars, rates):
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2, yval, f"{rate:.2%}", ha='center', va='bottom')
+
     plt.show()
 
-def plot_retention_rate_by_criteria(df, group_by='Genre', group_by_title='Genre', cut_range = [0, 10, 20, 30, np.inf], cut_labels=['$0-10', '$10-20', '$20-30', '$30+'], to_cut = False):
+def plot_retention_rate_by_criteria(df, group_by='Genre', group_by_title='Genre', cut_range=[0, 10, 20, np.inf], cut_labels=['$0-10', '$10-20', '$20+'], to_cut=False):
     if to_cut:
         df[f'{group_by} Range'] = pd.cut(df[group_by], bins=cut_range, labels=cut_labels)
-
-        group_by = group_by + " Range"
+        group_by = f"{group_by} Range"
+        df = df.dropna(subset=[group_by]).copy()
     
     grouped_by_year = df.groupby('Year')
     years = sorted(df['Year'].unique())
     crit = df[group_by].unique()
     
-    retention_data = {year: {field: None for field in crit} for year in years[:-1]} 
+    retention_data = {year: {field: {'rate': None, 'count': 0} for field in crit} for year in years[:-1]} 
     
     for year, group in grouped_by_year:
         next_year = year + 1
         if next_year in years:
             for field in crit:
                 current_books = set(zip(group[group[group_by] == field]['Name'], group[group[group_by] == field]['Author']))
+                current_count = len(current_books)
                 if next_year in grouped_by_year.groups:
                     next_year_books = set(zip(grouped_by_year.get_group(next_year)[grouped_by_year.get_group(next_year)[group_by] == field]['Name'], 
                                               grouped_by_year.get_group(next_year)[grouped_by_year.get_group(next_year)[group_by] == field]['Author']))
@@ -143,25 +200,28 @@ def plot_retention_rate_by_criteria(df, group_by='Genre', group_by_title='Genre'
                         retention_rate = len(current_books.intersection(next_year_books)) / len(current_books)
                     else:
                         retention_rate = 0 
-                    retention_data[year][field] = retention_rate
+                    retention_data[year][field]['rate'] = retention_rate
+                    retention_data[year][field]['count'] = current_count
+    
     fig, ax = plt.subplots(figsize=(12, 8))
     width = 0.75 / len(crit)
     for i, field in enumerate(crit):
-        rates = [retention_data[year][field] for year in years[:-1]]
-        ax.bar(np.arange(len(years)-1) + i*width, rates, width, label=field)
-
+        rates = [retention_data[year][field]['rate'] for year in years[:-1]]
+        counts = [retention_data[year][field]['count'] for year in years[:-1]]
+        bars = ax.bar(np.arange(len(years)-1) + i*width, rates, width, label=field)
+        for bar, rate, count in zip(bars, rates, counts):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), f'{rate:.2f}\n({count})', ha='center', va='bottom')
+    
     ax.set_xticks(np.arange(len(years)-1) + width / 2)
     ax.set_xticklabels(years[:-1])
     ax.set_ylabel('Retention Rate')
     ax.set_xlabel('Year')
     ax.set_title(f'Retention Rates by {group_by_title} per Year')
-    ax.legend(title=f'{group_by_title}')
+    ax.legend(title=group_by_title)
 
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.show()
-
-
 
 def change_over_time(df):
     books_per_year_genre = df.groupby(['Year', 'Genre']).size().unstack(fill_value=0)
@@ -249,3 +309,38 @@ def trend_f(df):
     fig.legend(loc="upper left", bbox_to_anchor=(0,1), bbox_transform=ax1.transAxes)
 
     plt.show()  
+
+def plot_author_longevity(df, label='Authors', type='Author'):
+    # Remove rows with missing or empty strings
+    author_years = {}
+    for year, group in df.groupby('Year'):
+        for author in group[type]:
+            if author in author_years:
+                author_years[author].add(year)
+            else:
+                author_years[author] = {year}
+
+    # Filter authors appearing in more than four years
+    long_staying_authors = {author: years for author, years in author_years.items() if len(years) > 5}
+
+    # Prepare data for plotting
+    authors = list(long_staying_authors.keys())
+    print(authors)
+    durations = [len(years) for years in long_staying_authors.values()]
+
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(authors, durations, color='skyblue')
+
+    plt.title(f'Number of Years {label} Stayed on the Bestseller List')
+    plt.xlabel(type)
+    plt.ylabel('Years on Bestseller List')
+    plt.xticks(rotation=90)
+    plt.ylim(0, max(durations) + 1)  
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+    # Add text labels for bars
+    for bar, duration in zip(bars, durations):
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2, yval, str(yval), ha='center', va='bottom')
+
+    plt.show()
