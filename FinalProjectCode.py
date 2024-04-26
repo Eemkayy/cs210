@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+
 def pie_dist(df, pie_by='Genre'):
     # Drop duplicates based on 'Name' and 'Author' to ensure uniqueness
     unique_df = df.drop_duplicates(subset=['Name', 'Author'])
@@ -124,7 +125,7 @@ def genre_performance_comparison (df):
     ax1.set_yticks(np.arange(0, 5.5, 0.5))  
     ax2 = ax1.twinx()  
     color = 'tab:red'
-    ax2.set_ylabel('Average Reviews (in decimals)', color=color)
+    ax2.set_ylabel('Average Reviews', color=color)
     ax2.plot(genres, reviews_mean, color=color, marker='o', linestyle='-', linewidth=2, markersize=12, label='Reviews')
     ax2.tick_params(axis='y', labelcolor=color)
     plt.title('Average User Rating and Reviews by Genre')
