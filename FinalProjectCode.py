@@ -265,7 +265,7 @@ def analysis_price_cultural_relevance(df):
 
     df['Price Range'] = pd.cut(df['Price'], bins=[0, 10, 20, 30, np.inf], labels=['$0-10', '$10-20', '$20-30', '$30+'])
 
-    ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 6))
     price_ranges = df['Price Range'].unique().dropna()
     reviews = [df[df['Price Range'] == price]['Reviews'] for price in price_ranges]
     ax.boxplot(reviews, labels=price_ranges)
@@ -362,7 +362,7 @@ def plot_retention_rate_by_criteria(df, group_by='Genre', group_by_title='Genre'
                     retention_data[year][field]['rate'] = retention_rate
                     retention_data[year][field]['count'] = current_count
     
-    ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(12, 8))
     width = 0.75 / len(crit)
     for i, field in enumerate(crit):
         rates = [retention_data[year][field]['rate'] for year in years[:-1]]
@@ -538,8 +538,6 @@ def plot_author_longevity(df, label='Authors', type='Author'):
     plt.grid(axis='y', linestyle='--', alpha=0.7)
 
     # Add text labels for bars
-    for bar, in zip(bars, durations):
-        yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width() / 2, yval, str(yval), ha='center', va='bottom')
+    
 
     plt.show()
